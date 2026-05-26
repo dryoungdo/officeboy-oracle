@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run $HOME/.claude/skills/glueboy-unique-auto-rrr/hooks/session-start-hook.ts"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run $HOME/.claude/skills/glueboy-unique-auto-rrr/hooks/stop-hook.ts",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run $HOME/.claude/skills/glueboy-unique-auto-rrr/hooks/session-end-hook.ts",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
