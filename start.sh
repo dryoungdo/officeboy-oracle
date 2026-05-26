@@ -89,50 +89,51 @@ verify_discord_mcp_after_launch() {
 
 export DISCORD_STATE_DIR="/home/drdo/.claude/channels/discord/officeboy"
 
-# Multi-oracle Discord fix: each oracle gets its own plugin cache copy
-# so patching .mcp.json doesn't clobber sibling oracles on the same machine.
-ORACLE_NAME="officeboy"
-SHARED_CACHE="$HOME/.claude/plugins/cache/claude-plugins-official/discord"
-LOCAL_CACHE="$HOME/.claude/plugins/cache/discord-${ORACLE_NAME}"
+patch_discord_plugin_env() {
+  local candidate
+  local found=0
+  local tmp=""
 
-setup_local_plugin_cache() {
   if ! command -v jq >/dev/null 2>&1; then
-    echo "[start.sh] WARNING: jq not found; skipping local plugin cache setup" >&2
+    echo "[start.sh] WARNING: jq not found; skipping Discord plugin .mcp.json env patch" >&2
     return 0
   fi
 
-  local latest_version
-  latest_version=$(ls -d "${SHARED_CACHE}"/*/  2>/dev/null | sort -V | tail -1)
-  if [ -z "$latest_version" ]; then
-    echo "[start.sh] WARNING: no shared Discord plugin found; skipping" >&2
-    return 0
-  fi
+  for candidate in "$HOME"/.claude/plugins/cache/claude-plugins-official/discord/*/.mcp.json; do
+    [ -f "$candidate" ] || continue
+    found=1
 
-  local version_name
-  version_name=$(basename "$latest_version")
-  local local_version_dir="${LOCAL_CACHE}/discord/${version_name}"
+    if jq -e --arg dir "$DISCORD_STATE_DIR" \
+      '.mcpServers.discord.env.DISCORD_STATE_DIR == $dir' \
+      "$candidate" >/dev/null 2>&1; then
+      echo "[start.sh] Discord plugin env.DISCORD_STATE_DIR already correct in $candidate" >&2
+      continue
+    fi
 
-  if [ ! -d "$local_version_dir" ]; then
-    echo "[start.sh] Creating local plugin cache: $local_version_dir" >&2
-    mkdir -p "$local_version_dir"
-    cp -a "${latest_version}/." "$local_version_dir/"
-  fi
+    echo "[start.sh] Patching $candidate with DISCORD_STATE_DIR=$DISCORD_STATE_DIR" >&2
 
-  local mcp_json="${local_version_dir}/.mcp.json"
-  if [ -f "$mcp_json" ]; then
-    local tmp
-    tmp=$(mktemp) || return 0
+    if ! tmp="$(mktemp)"; then
+      echo "[start.sh] WARNING: failed to create temp file; skipping patch for $candidate" >&2
+      continue
+    fi
+
     if jq --arg dir "$DISCORD_STATE_DIR" \
       '.mcpServers.discord.env = (.mcpServers.discord.env // {}) * {DISCORD_STATE_DIR: $dir}' \
-      "$mcp_json" > "$tmp" && mv "$tmp" "$mcp_json"; then
-      echo "[start.sh] Patched local .mcp.json with DISCORD_STATE_DIR=$DISCORD_STATE_DIR" >&2
+      "$candidate" > "$tmp" && mv "$tmp" "$candidate"; then
+      echo "[start.sh] Patched $candidate" >&2
     else
+      echo "[start.sh] WARNING: failed to patch $candidate" >&2
       rm -f "$tmp"
     fi
+    tmp=""
+  done
+
+  if [ "$found" -eq 0 ]; then
+    echo "[start.sh] WARNING: Discord plugin .mcp.json not found; skipping env patch" >&2
   fi
 }
 
-setup_local_plugin_cache
+patch_discord_plugin_env
 
 has_prior_session() {
   local encoded_pwd
@@ -141,49 +142,10 @@ has_prior_session() {
   [ -d "$project_dir" ] && ls "$project_dir"/*.jsonl >/dev/null 2>&1
 }
 
-patch_shared_plugin_env() {
-  if ! command -v jq >/dev/null 2>&1; then
-    echo "[start.sh] WARNING: jq not found; skipping shared plugin env patch" >&2
-    return 0
-  fi
-
-  local candidate found=0 tmp=""
-  for candidate in "$SHARED_CACHE"/*/.mcp.json; do
-    [ -f "$candidate" ] || continue
-    found=1
-
-    if jq -e --arg dir "$DISCORD_STATE_DIR" \
-      '.mcpServers.discord.env.DISCORD_STATE_DIR == $dir' \
-      "$candidate" >/dev/null 2>&1; then
-      continue
-    fi
-
-    tmp=$(mktemp) || continue
-    if jq --arg dir "$DISCORD_STATE_DIR" \
-      '.mcpServers.discord.env = (.mcpServers.discord.env // {}) * {DISCORD_STATE_DIR: $dir}' \
-      "$candidate" > "$tmp" && mv "$tmp" "$candidate"; then
-      echo "[start.sh] Patched shared $candidate with DISCORD_STATE_DIR=$DISCORD_STATE_DIR" >&2
-    else
-      rm -f "$tmp"
-    fi
-    tmp=""
-  done
-}
-
-# Use local plugin cache if it exists; fall back to shared (with env patch)
-if [ -d "$LOCAL_CACHE/discord" ]; then
-  DISCORD_CHANNEL_FLAG="plugin:discord@discord-${ORACLE_NAME}"
-  echo "[start.sh] Using local Discord plugin cache: $LOCAL_CACHE" >&2
-else
-  patch_shared_plugin_env
-  DISCORD_CHANNEL_FLAG="plugin:discord@claude-plugins-official"
-  echo "[start.sh] Using shared Discord plugin cache (patched env)" >&2
-fi
-
 CLAUDE_ARGS=(
   --model claude-opus-4-6
   --dangerously-skip-permissions
-  --channels "$DISCORD_CHANNEL_FLAG"
+  --channels plugin:discord@claude-plugins-official
 )
 if { [ "${CLAUDE_CONTINUE:-0}" = "1" ] || [ "${1:-}" = "--continue" ]; } && has_prior_session; then
   CLAUDE_ARGS+=(--continue)
