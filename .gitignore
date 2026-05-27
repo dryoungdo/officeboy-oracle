@@ -1,0 +1,53 @@
+# Temporary files
+.tmp/
+*.tmp
+.oracle-build-backups/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Large/nested repos (prevent accidental submodule-like commits)
+ψ/learn/repo/
+ψ/incubate/
+
+# Data
+ψ/data/
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Environment (NEVER commit secrets)
+.env
+.env.local
+
+# Logs
+*.log
+
+# Generated
+ψ/dashboard/
+
+# Lock files
+ψ/.claude/*.lock
+.claude/*.lock
+
+# Transient inbox items
+ψ/inbox/*.md
+
+# Worktrees
+.worktrees/*
+
+# Codex
+.codex/
+.agents/
+
+# Playwright MCP cache
+.playwright-mcp/
