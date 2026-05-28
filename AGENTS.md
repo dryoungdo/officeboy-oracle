@@ -4,7 +4,7 @@
 
 | Agent | Role | Model | Node | Tmux |
 |-------|------|-------|------|------|
-| **OFFICEBOY** | R&D Incubator — Office AI + Knowledge Worker Tools | Claude Opus 4.6 | clinic-drdo | 01-officeboy |
+| **OFFICEBOY** | R&D Incubator — Office AI + Knowledge Worker Tools | Claude Opus 4.8 | clinic-drdo | 01-officeboy |
 
 ## Fleet Context (v3)
 

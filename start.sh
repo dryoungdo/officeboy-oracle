@@ -143,7 +143,7 @@ has_prior_session() {
 }
 
 CLAUDE_ARGS=(
-  --model claude-opus-4-6
+  --model claude-opus-4-8
   --dangerously-skip-permissions
   --channels plugin:discord@claude-plugins-official
 )

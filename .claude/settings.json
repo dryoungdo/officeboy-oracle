@@ -161,5 +161,7 @@
   },
   "enabledPlugins": {
     "discord@claude-plugins-official": true
-  }
+  },
+  "model": "opus",
+  "effortLevel": "xhigh"
 }
